@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: axiom-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: axiom_root
+      MYSQL_DATABASE: axiom
+      MYSQL_USER: axiom_user
+      MYSQL_PASSWORD: axiom_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/app/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/app/db/procedures.sql:/docker-entrypoint-initdb.d/02-procedures.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: axiom-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: axiom_user
+      DB_PASSWORD: axiom_pass
+      DB_NAME: axiom
+      JWT_SECRET: axiom-dev-secret-change-in-prod
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: axiom-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Axiom palette — deep midnight canvas with warm amber accent */
+  --ax-bg: #0c0e13;
+  --ax-surface: #14161d;
+  --ax-surface-hover: #1a1d27;
+  --ax-surface-raised: #1e2130;
+  --ax-border: #262a38;
+  --ax-border-subtle: #1e2130;
+  --ax-text: #e8e6e1;
+  --ax-text-secondary: #8a8895;
+  --ax-text-muted: #5a5868;
+  --ax-accent: #e8a838;
+  --ax-accent-dim: #c48a28;
+  --ax-accent-glow: rgba(232, 168, 56, 0.12);
+  --ax-success: #3dd68c;
+  --ax-success-dim: rgba(61, 214, 140, 0.12);
+  --ax-danger: #f06060;
+  --ax-danger-dim: rgba(240, 96, 96, 0.12);
+  --ax-info: #5ea3f8;
+  --ax-info-dim: rgba(94, 163, 248, 0.12);
+  --ax-warn: #f0b060;
+  --ax-warn-dim: rgba(240, 176, 96, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ax-bg);
+  color: var(--ax-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ax-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ax-text-muted); }
+
+/* Typography utilities */
+.font-display { font-family: 'DM Serif Display', serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Fade-in animation */
+@keyframes ax-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ax-fade-in-scale {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ax-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ax-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ax-accent-glow); }
+  50% { box-shadow: 0 0 24px 4px var(--ax-accent-glow); }
+}
+
+.ax-animate { animation: ax-fade-in 0.4s ease-out both; }
+.ax-animate-scale { animation: ax-fade-in-scale 0.35s ease-out both; }
+.ax-stagger-1 { animation-delay: 0.05s; }
+.ax-stagger-2 { animation-delay: 0.1s; }
+.ax-stagger-3 { animation-delay: 0.15s; }
+.ax-stagger-4 { animation-delay: 0.2s; }
+.ax-stagger-5 { animation-delay: 0.25s; }
+
+/* Card component */
+.ax-card {
+  background: var(--ax-surface);
+  border: 1px solid var(--ax-border);
+  border-radius: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ax-card:hover {
+  border-color: var(--ax-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.ax-card-interactive:hover {
+  border-color: var(--ax-accent-dim);
+}
+
+/* Button base */
+.ax-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  text-decoration: none;
+}
+.ax-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--ax-bg), 0 0 0 4px var(--ax-accent);
+}
+
+.ax-btn-primary {
+  background: var(--ax-accent);
+  color: var(--ax-bg);
+  font-weight: 600;
+}
+.ax-btn-primary:hover {
+  background: var(--ax-accent-dim);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 168, 56, 0.25);
+}
+
+.ax-btn-ghost {
+  background: transparent;
+  color: var(--ax-text-secondary);
+  border: 1px solid var(--ax-border);
+}
+.ax-btn-ghost:hover {
+  background: var(--ax-surface-hover);
+  color: var(--ax-text);
+  border-color: var(--ax-text-muted);
+}
+
+.ax-btn-danger {
+  background: transparent;
+  color: var(--ax-danger);
+  border: 1px solid var(--ax-danger);
+}
+.ax-btn-danger:hover {
+  background: var(--ax-danger-dim);
+}
+
+/* Input styles */
+.ax-input {
+  width: 100%;
+  background: var(--ax-bg);
+  border: 1px solid var(--ax-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--ax-text);
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.ax-input::placeholder {
+  color: var(--ax-text-muted);
+}
+.ax-input:focus {
+  border-color: var(--ax-accent);
+  box-shadow: 0 0 0 3px var(--ax-accent-glow);
+}
+
+select.ax-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238a8895' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+textarea.ax-input {
+  resize: none;
+  min-height: 80px;
+}
+
+/* Tag / Badge */
+.ax-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Progress bar */
+.ax-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--ax-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ax-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ax-accent-dim), var(--ax-accent));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dot grid pattern (decorative) */
+.ax-dotgrid {
+  background-image: radial-gradient(circle, var(--ax-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Geometric corner accent */
+.ax-corner-accent::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 48px;
+  height: 48px;
+  border-top: 2px solid var(--ax-accent);
+  border-left: 2px solid var(--ax-accent);
+  border-radius: 12px 0 0 0;
+  pointer-events: none;
+}
