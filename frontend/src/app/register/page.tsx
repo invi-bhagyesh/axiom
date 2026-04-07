@@ -2,14 +2,17 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import AsciiHero from "@/components/AsciiHero";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [role, setRole] = useState("requester");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,91 +23,103 @@ export default function RegisterPage() {
     try {
       await register(email, password, name, role);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message);
-    }
+    } catch (err: any) { setError(err.message); }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-sm ax-animate">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5" style={{ background: 'var(--ax-accent-glow)', border: '1px solid var(--ax-accent-dim)' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L22 8.5V15.5L12 22L2 15.5V8.5L12 2Z" stroke="var(--ax-accent)" strokeWidth="1.5" />
-              <circle cx="12" cy="11" r="3" stroke="var(--ax-accent)" strokeWidth="1.5" />
-              <path d="M7 19C7 16.2 9.2 14 12 14C14.8 14 17 16.2 17 19" stroke="var(--ax-accent)" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+    <div className="h-[100dvh] flex flex-col md:flex-row w-[100dvw] bg-background text-foreground">
+      {/* Left — Register form */}
+      <section className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col gap-6">
+            <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">
+              <span className="font-light text-foreground tracking-tighter">Create Account</span>
+            </h1>
+            <p className="animate-element animate-delay-200 text-muted-foreground">
+              Get started with Axiom — set up your workspace in seconds
+            </p>
+
+            {error && (
+              <div className="animate-element rounded-2xl px-4 py-3 text-sm font-medium" style={{ background: 'var(--ax-red-dim)', color: 'var(--ax-red)' }}>
+                {error}
+              </div>
+            )}
+
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="animate-element animate-delay-300">
+                <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-violet-400/70 focus-within:bg-violet-500/10">
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    placeholder="Jane Smith" required
+                    className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="animate-element animate-delay-400">
+                <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+                <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-violet-400/70 focus-within:bg-violet-500/10">
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com" required
+                    className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="animate-element animate-delay-500">
+                <label className="text-sm font-medium text-muted-foreground">Password</label>
+                <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-violet-400/70 focus-within:bg-violet-500/10">
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Min. 6 characters" required
+                      className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
+                      {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="animate-element animate-delay-600">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Role</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {(["requester", "annotator"] as const).map((r) => (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className="h-[60px] rounded-2xl text-left px-4 transition-all border backdrop-blur-sm"
+                      style={{
+                        background: role === r ? 'rgba(139, 92, 246, 0.1)' : 'hsl(var(--foreground) / 0.05)',
+                        borderColor: role === r ? 'rgba(139, 92, 246, 0.7)' : 'hsl(var(--border))',
+                        boxShadow: role === r ? '0 0 0 1px rgba(139, 92, 246, 0.5)' : 'none',
+                      }}>
+                      <span className="block text-sm font-semibold" style={{ color: role === r ? '#a78bfa' : 'hsl(var(--foreground))' }}>
+                        {r === "requester" ? "Requester" : "Annotator"}
+                      </span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        {r === "requester" ? "Create & manage projects" : "Label & annotate data"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading}
+                className="animate-element animate-delay-700 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
+                {loading ? <span className="inline-block w-4 h-4 border-2 border-[#0c0d10]/30 border-t-[#0c0d10] rounded-full animate-spin" /> : "Create Account"}
+              </button>
+            </form>
+
+            <p className="animate-element animate-delay-800 text-center text-sm text-muted-foreground">
+              Already have an account? <a href="/login" className="text-violet-400 hover:underline transition-colors">Sign in</a>
+            </p>
           </div>
-          <h1 className="font-display text-3xl mb-2">Create account</h1>
-          <p style={{ color: 'var(--ax-text-muted)' }} className="text-sm">Join Axiom as a requester or annotator</p>
         </div>
+      </section>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="ax-animate-scale rounded-lg px-4 py-3 text-sm" style={{ background: 'var(--ax-danger-dim)', color: 'var(--ax-danger)', border: '1px solid rgba(240,96,96,0.2)' }}>
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--ax-text-muted)' }}>Display Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="ax-input" placeholder="Dr. Jane Smith" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--ax-text-muted)' }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="ax-input" placeholder="you@institution.edu" required />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--ax-text-muted)' }}>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="ax-input" placeholder="Min. 6 characters" required />
-          </div>
-
-          {/* Role selector */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium tracking-wide uppercase" style={{ color: 'var(--ax-text-muted)' }}>Role</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: "requester", label: "Requester", desc: "Create projects" },
-                { value: "annotator", label: "Annotator", desc: "Label data" },
-              ].map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRole(r.value)}
-                  className="p-3 rounded-lg text-left transition-all"
-                  style={{
-                    background: role === r.value ? 'var(--ax-accent-glow)' : 'var(--ax-surface)',
-                    border: `1.5px solid ${role === r.value ? 'var(--ax-accent)' : 'var(--ax-border)'}`,
-                  }}
-                >
-                  <span className="block text-sm font-medium" style={{ color: role === r.value ? 'var(--ax-accent)' : 'var(--ax-text)' }}>
-                    {r.label}
-                  </span>
-                  <span className="block text-xs mt-0.5" style={{ color: 'var(--ax-text-muted)' }}>{r.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className="ax-btn ax-btn-primary w-full" style={{ height: 44 }}>
-            {loading ? (
-              <span className="inline-block w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--ax-bg)', borderTopColor: 'transparent' }} />
-            ) : "Create Account"}
-          </button>
-        </form>
-
-        <p className="text-center mt-8 text-sm" style={{ color: 'var(--ax-text-muted)' }}>
-          Already have an account?{" "}
-          <a href="/login" className="font-medium hover:underline" style={{ color: 'var(--ax-accent)' }}>Sign in</a>
-        </p>
-      </div>
+      {/* Right — Hero panel */}
+      <section className="hidden md:block flex-1 relative p-4">
+        <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl overflow-hidden">
+          <AsciiHero />
+        </div>
+      </section>
     </div>
   );
 }

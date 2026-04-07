@@ -19,7 +19,7 @@ export default function Home() {
     <div className="flex items-center justify-center h-64">
       <div className="flex items-center gap-3">
         <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--ax-accent)', borderTopColor: 'transparent' }} />
-        <span className="text-sm font-mono" style={{ color: 'var(--ax-text-muted)' }}>Loading...</span>
+        <span className="text-[13px]" style={{ color: 'var(--ax-text-tertiary)' }}>Loading...</span>
       </div>
     </div>
   );

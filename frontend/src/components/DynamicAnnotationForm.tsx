@@ -16,6 +16,7 @@ interface Props {
   initial?: Record<string, any>;
   onSubmit: (responses: Record<string, any>) => void;
   readOnly?: boolean;
+  submitLabel?: string;
 }
 
 function LikertField({ field, value, onChange, readOnly }: {
@@ -27,7 +28,7 @@ function LikertField({ field, value, onChange, readOnly }: {
   const points = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center gap-2">
         {points.map((p) => (
           <button
@@ -35,14 +36,13 @@ function LikertField({ field, value, onChange, readOnly }: {
             type="button"
             disabled={readOnly}
             onClick={() => onChange(p)}
-            className="flex-1 h-11 rounded-lg text-sm font-mono font-bold transition-all"
+            className="flex-1 h-11 rounded-lg text-[13px] font-bold transition-all"
             style={{
-              background: value === p ? 'var(--ax-accent)' : 'var(--ax-bg)',
-              color: value === p ? 'var(--ax-bg)' : 'var(--ax-text-muted)',
-              border: `1.5px solid ${value === p ? 'var(--ax-accent)' : 'var(--ax-border)'}`,
+              background: value === p ? 'rgba(0,212,255,0.12)' : '#172035',
+              color: value === p ? '#00d4ff' : '#7a95ae',
+              border: `1.5px solid ${value === p ? 'rgba(0,212,255,0.4)' : 'rgba(100,140,190,0.15)'}`,
+              boxShadow: value === p ? '0 0 12px rgba(0,212,255,0.1)' : 'none',
               cursor: readOnly ? 'default' : 'pointer',
-              transform: value === p ? 'scale(1.05)' : 'scale(1)',
-              boxShadow: value === p ? '0 0 16px var(--ax-accent-glow)' : 'none',
             }}
           >
             {p}
@@ -50,7 +50,7 @@ function LikertField({ field, value, onChange, readOnly }: {
         ))}
       </div>
       {labels.length > 0 && (
-        <div className="flex justify-between text-[10px] font-mono uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>
+        <div className="flex justify-between text-[11px]" style={{ color: '#7a95ae' }}>
           <span>{labels[0]}</span>
           {labels.length > 1 && <span>{labels[labels.length - 1]}</span>}
         </div>
@@ -65,19 +65,19 @@ function BooleanField({ value, onChange, readOnly }: {
   return (
     <div className="grid grid-cols-2 gap-3">
       {[
-        { val: true, label: "Yes", color: 'var(--ax-success)', bg: 'var(--ax-success-dim)' },
-        { val: false, label: "No", color: 'var(--ax-danger)', bg: 'var(--ax-danger-dim)' },
+        { val: true, label: "Yes", color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)' },
+        { val: false, label: "No", color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.25)' },
       ].map((opt) => (
         <button
           key={String(opt.val)}
           type="button"
           disabled={readOnly}
           onClick={() => onChange(opt.val)}
-          className="h-11 rounded-lg text-sm font-semibold transition-all"
+          className="h-11 rounded-lg text-[13px] font-semibold transition-all"
           style={{
-            background: value === opt.val ? opt.bg : 'var(--ax-bg)',
-            color: value === opt.val ? opt.color : 'var(--ax-text-muted)',
-            border: `1.5px solid ${value === opt.val ? opt.color : 'var(--ax-border)'}`,
+            background: value === opt.val ? opt.bg : '#172035',
+            color: value === opt.val ? opt.color : '#7a95ae',
+            border: `1.5px solid ${value === opt.val ? opt.border : 'rgba(100,140,190,0.15)'}`,
             cursor: readOnly ? 'default' : 'pointer',
           }}
         >
@@ -97,7 +97,7 @@ function FreeTextField({ value, onChange, readOnly }: {
       onChange={(e) => onChange(e.target.value)}
       readOnly={readOnly}
       rows={3}
-      className="ax-input font-normal"
+      className="ax-input"
       placeholder="Enter your response..."
       style={{ minHeight: 80, lineHeight: 1.6 }}
     />
@@ -122,11 +122,11 @@ function MultiSelectField({ field, value, onChange, readOnly }: {
           type="button"
           disabled={readOnly}
           onClick={() => toggle(opt)}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+          className="px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all"
           style={{
-            background: value.includes(opt) ? 'var(--ax-accent-glow)' : 'var(--ax-bg)',
-            color: value.includes(opt) ? 'var(--ax-accent)' : 'var(--ax-text-muted)',
-            border: `1.5px solid ${value.includes(opt) ? 'var(--ax-accent)' : 'var(--ax-border)'}`,
+            background: value.includes(opt) ? 'rgba(167,139,250,0.1)' : '#172035',
+            color: value.includes(opt) ? '#a78bfa' : '#7a95ae',
+            border: `1.5px solid ${value.includes(opt) ? 'rgba(167,139,250,0.3)' : 'rgba(100,140,190,0.15)'}`,
             cursor: readOnly ? 'default' : 'pointer',
           }}
         >
@@ -137,7 +137,7 @@ function MultiSelectField({ field, value, onChange, readOnly }: {
   );
 }
 
-export default function DynamicAnnotationForm({ fields, initial, onSubmit, readOnly }: Props) {
+export default function DynamicAnnotationForm({ fields, initial, onSubmit, readOnly, submitLabel }: Props) {
   const [responses, setResponses] = useState<Record<string, any>>(initial || {});
   const [validationError, setValidationError] = useState("");
 
@@ -158,22 +158,22 @@ export default function DynamicAnnotationForm({ fields, initial, onSubmit, readO
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-7">
       {validationError && (
-        <div className="rounded-lg px-4 py-3 text-sm ax-animate-scale" style={{ background: 'var(--ax-danger-dim)', color: 'var(--ax-danger)', border: '1px solid rgba(240,96,96,0.2)' }}>
+        <div className="rounded-lg p-3 text-[13px] font-medium" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.15)' }}>
           {validationError}
         </div>
       )}
 
       {fields.map((field, i) => (
-        <div key={field.id} className={`space-y-3 ax-animate ax-stagger-${Math.min(i + 1, 5)}`}>
+        <div key={field.id} className={`space-y-3 ax-enter ax-d${Math.min(i + 1, 5)}`}>
           <div>
-            <label className="block text-sm font-semibold mb-0.5" style={{ color: 'var(--ax-text)' }}>
+            <label className="block text-[14px] font-semibold mb-1" style={{ color: '#dfe7ef' }}>
               {field.label}
-              {field.is_required && <span className="ml-1" style={{ color: 'var(--ax-accent)' }}>*</span>}
+              {field.is_required && <span className="ml-1" style={{ color: '#f87171' }}>*</span>}
             </label>
             {field.description && (
-              <p className="text-xs" style={{ color: 'var(--ax-text-muted)' }}>{field.description}</p>
+              <p className="text-[13px]" style={{ color: '#a3b8cc' }}>{field.description}</p>
             )}
           </div>
 
@@ -190,16 +190,15 @@ export default function DynamicAnnotationForm({ fields, initial, onSubmit, readO
             <MultiSelectField field={field} value={responses[field.field_key] || []} onChange={(v) => setValue(field.field_key, v)} readOnly={readOnly} />
           )}
 
-          {/* Divider between fields */}
           {i < fields.length - 1 && (
-            <div className="pt-2" style={{ borderBottom: '1px solid var(--ax-border-subtle)' }} />
+            <div className="pt-1" style={{ borderBottom: '1px solid rgba(100,140,190,0.08)' }} />
           )}
         </div>
       ))}
 
       {!readOnly && (
-        <button type="submit" className="ax-btn ax-btn-primary w-full" style={{ height: 48, fontSize: 15 }}>
-          Submit Annotation
+        <button type="submit" className="ax-btn ax-btn-primary w-full" style={{ height: 44, fontSize: 14 }}>
+          {submitLabel || "Submit Annotation"}
         </button>
       )}
     </form>

@@ -3,15 +3,59 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { useRouter, useParams } from "next/navigation";
+import {
+  ArrowLeft, Play, Pause, CheckCircle2, Plus, Trash2,
+  Upload, Eye, Sparkles, Download, FolderOpen, LayoutList,
+  Database, Users, BarChart3, FileText, AlertTriangle,
+} from "lucide-react";
 
 type Tab = "overview" | "schema" | "data" | "annotators" | "results";
+const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  { key: "overview", label: "Overview", icon: <LayoutList size={15} /> },
+  { key: "schema", label: "Schema", icon: <FileText size={15} /> },
+  { key: "data", label: "Data", icon: <Database size={15} /> },
+  { key: "annotators", label: "Annotators", icon: <Users size={15} /> },
+  { key: "results", label: "Results", icon: <BarChart3 size={15} /> },
+];
+
+const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
+  draft:     { color: "#94a3b8", bg: "rgba(148,163,184,0.1)", label: "Draft" },
+  active:    { color: "#00d4ff", bg: "rgba(0,212,255,0.1)",   label: "Active" },
+  paused:    { color: "#fbbf24", bg: "rgba(251,191,36,0.1)",  label: "Paused" },
+  completed: { color: "#34d399", bg: "rgba(52,211,153,0.1)",  label: "Complete" },
+  archived:  { color: "#f87171", bg: "rgba(248,113,113,0.1)", label: "Archived" },
+};
+
+function ProgressBar({ pct, color = "#00d4ff" }: { pct: number; color?: string }) {
+  return (
+    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(100,140,190,0.1)" }}>
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
+    </div>
+  );
+}
+
+function ProgressRing({ pct, size = 80, stroke = 6 }: { pct: number; size?: number; stroke?: number }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  return (
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(100,140,190,0.12)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#00d4ff" strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+      </svg>
+      <span className="absolute text-[15px] font-semibold" style={{ color: "#dfe7ef" }}>{pct}%</span>
+    </div>
+  );
+}
 
 export default function ProjectDetail() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
-
   const [project, setProject] = useState<any>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [error, setError] = useState("");
@@ -25,58 +69,55 @@ export default function ProjectDetail() {
 
   if (loading || !user || !project) return null;
 
-  const tabs: Tab[] = user.role === "requester"
-    ? ["overview", "schema", "data", "annotators", "results"]
-    : ["overview"];
-
-  const tabIcons: Record<Tab, string> = {
-    overview: "M3 12L12 3L21 12M5 10V20H19V10",
-    schema: "M4 5H20M4 12H20M4 19H12",
-    data: "M4 7V17C4 18.1 4.9 19 6 19H18C19.1 19 20 18.1 20 17V7M4 7L8 3H16L20 7M4 7H20",
-    annotators: "M17 21V19C17 16.8 15.2 15 13 15H5C2.8 15 1 16.8 1 19V21M23 21V19C23 17.9 22.2 16.9 21 16.5M16 3.5C17.2 3.9 18 4.9 18 6S17.2 8.1 16 8.5M9 11C11.2 11 13 9.2 13 7S11.2 3 9 3S5 4.8 5 7S6.8 11 9 11Z",
-    results: "M18 20V10M12 20V4M6 20V14",
-  };
+  const tabs = user.role === "requester" ? TABS : TABS.slice(0, 1);
+  const st = STATUS_META[project.status] || STATUS_META.draft;
 
   return (
-    <div className="ax-animate">
-      {/* Breadcrumb + Header */}
-      <div className="mb-8">
-        <a href="/dashboard" className="text-xs font-mono uppercase tracking-wide hover:underline" style={{ color: 'var(--ax-text-muted)' }}>
-          &larr; Dashboard
-        </a>
-        <div className="flex items-start justify-between mt-3">
-          <div>
-            <h1 className="font-display text-3xl">{project.title}</h1>
-            {project.description && <p className="text-sm mt-1" style={{ color: 'var(--ax-text-secondary)' }}>{project.description}</p>}
+    <div className="ax-enter">
+      {/* Back link */}
+      <a href="/dashboard" className="inline-flex items-center gap-1.5 text-[13px] mb-5 transition-colors"
+        style={{ color: "#7a95ae", textDecoration: "none" }}>
+        <ArrowLeft size={14} /> Back to projects
+      </a>
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-[24px] font-bold tracking-tight" style={{ color: "#edf2f7" }}>
+              {project.title}
+            </h1>
+            <span className="text-[12px] font-semibold px-3 py-1 rounded-lg"
+              style={{ color: st.color, background: st.bg }}>
+              {st.label}
+            </span>
           </div>
-          <StatusBadge status={project.status} />
+          {project.description && (
+            <p className="text-[14px] mt-1" style={{ color: "#7a95ae" }}>{project.description}</p>
+          )}
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg px-4 py-3 text-sm mb-6" style={{ background: 'var(--ax-danger-dim)', color: 'var(--ax-danger)' }}>
+        <div className="ax-card p-4 text-[13px] font-medium mb-4" style={{ borderColor: "rgba(248,113,113,0.2)", color: "#f87171" }}>
           {error}
         </div>
       )}
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-8 pb-px" style={{ borderBottom: '1px solid var(--ax-border)' }}>
+      <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: "#172035" }}>
         {tabs.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium capitalize transition-all relative"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all"
             style={{
-              color: tab === t ? 'var(--ax-accent)' : 'var(--ax-text-muted)',
+              color: tab === t.key ? "#dfe7ef" : "#7a95ae",
+              background: tab === t.key ? "#253350" : "transparent",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d={tabIcons[t]} />
-            </svg>
-            {t}
-            {tab === t && (
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full" style={{ background: 'var(--ax-accent)' }} />
-            )}
+            {t.icon}
+            {t.label}
           </button>
         ))}
       </div>
@@ -90,87 +131,93 @@ export default function ProjectDetail() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, { bg: string; color: string }> = {
-    draft: { bg: 'var(--ax-surface-raised)', color: 'var(--ax-text-muted)' },
-    active: { bg: 'var(--ax-info-dim)', color: 'var(--ax-info)' },
-    paused: { bg: 'var(--ax-warn-dim)', color: 'var(--ax-warn)' },
-    completed: { bg: 'var(--ax-success-dim)', color: 'var(--ax-success)' },
-    archived: { bg: 'var(--ax-danger-dim)', color: 'var(--ax-danger)' },
-  };
-  const s = styles[status] || styles.draft;
-  return <span className="ax-badge" style={{ background: s.bg, color: s.color }}>{status}</span>;
-}
-
-function Stat({ label, value, accent }: { label: string; value: any; accent?: boolean }) {
-  return (
-    <div>
-      <p className="text-[10px] font-mono uppercase tracking-widest mb-1" style={{ color: 'var(--ax-text-muted)' }}>{label}</p>
-      <p className="text-xl font-semibold capitalize" style={{ color: accent ? 'var(--ax-accent)' : 'var(--ax-text)' }}>{String(value)}</p>
-    </div>
-  );
-}
-
-/* ───────── Overview ───────── */
+/* ───── Overview ───── */
 function OverviewTab({ project, projectId, reload }: { project: any; projectId: string; reload: () => void }) {
   const [progress, setProgress] = useState<any>(null);
+  useEffect(() => { apiFetch(`/api/projects/${projectId}/progress`).then(setProgress).catch(() => {}); }, [projectId]);
 
-  useEffect(() => {
-    apiFetch(`/api/projects/${projectId}/progress`).then(setProgress).catch(() => {});
-  }, [projectId]);
-
-  const handleStatus = async (status: string) => {
+  const changeStatus = async (status: string) => {
     await apiFetch(`/api/projects/${projectId}`, { method: "PATCH", body: JSON.stringify({ status }) });
     reload();
   };
 
+  const pct = Math.round(progress?.pct_complete || 0);
+
   return (
-    <div className="space-y-6 ax-animate">
-      <div className="ax-card p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={project.status} />
-        <Stat label="Min Annotations" value={project.min_annotations_per_item} accent />
-        <Stat label="Schema Fields" value={project.schema_fields?.length || 0} />
-        <Stat label="Deadline" value={project.deadline ? new Date(project.deadline).toLocaleDateString() : "None"} />
+    <div className="space-y-5 ax-enter">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="ax-card p-5">
+          <p className="text-[12px] mb-1" style={{ color: "#7a95ae" }}>Status</p>
+          <p className="text-[18px] font-semibold capitalize" style={{ color: STATUS_META[project.status]?.color || "#dfe7ef" }}>
+            {project.status}
+          </p>
+        </div>
+        <div className="ax-card p-5">
+          <p className="text-[12px] mb-1" style={{ color: "#7a95ae" }}>Min annotations</p>
+          <p className="text-[18px] font-semibold" style={{ color: "#dfe7ef" }}>{project.min_annotations_per_item}</p>
+        </div>
+        <div className="ax-card p-5">
+          <p className="text-[12px] mb-1" style={{ color: "#7a95ae" }}>Schema fields</p>
+          <p className="text-[18px] font-semibold" style={{ color: "#dfe7ef" }}>{project.schema_fields?.length || 0}</p>
+        </div>
+        <div className="ax-card p-5">
+          <p className="text-[12px] mb-1" style={{ color: "#7a95ae" }}>Deadline</p>
+          <p className="text-[18px] font-semibold" style={{ color: "#dfe7ef" }}>
+            {project.deadline ? new Date(project.deadline).toLocaleDateString() : "None"}
+          </p>
+        </div>
       </div>
 
+      {/* Progress card */}
       {progress && (
         <div className="ax-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Progress</h3>
-            <span className="font-mono text-sm font-semibold" style={{ color: 'var(--ax-accent)' }}>
-              {progress.pct_complete?.toFixed(0) || 0}%
-            </span>
-          </div>
-          <div className="ax-progress mb-5">
-            <div className="ax-progress-bar" style={{ width: `${progress.pct_complete || 0}%` }} />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="Total Tasks" value={progress.total_tasks || 0} />
-            <Stat label="Submitted" value={progress.submitted_tasks || 0} />
-            <Stat label="Flagged" value={progress.flagged_items || 0} />
+          <h3 className="text-[15px] font-semibold mb-5" style={{ color: "#dfe7ef" }}>Progress</h3>
+          <div className="flex items-center gap-8">
+            <ProgressRing pct={pct} size={90} stroke={7} />
+            <div className="flex-1 space-y-4">
+              <ProgressBar pct={pct} />
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-[12px]" style={{ color: "#7a95ae" }}>Total tasks</p>
+                  <p className="text-[20px] font-semibold" style={{ color: "#dfe7ef" }}>{progress.total_tasks || 0}</p>
+                </div>
+                <div>
+                  <p className="text-[12px]" style={{ color: "#7a95ae" }}>Submitted</p>
+                  <p className="text-[20px] font-semibold" style={{ color: "#34d399" }}>{progress.submitted_tasks || 0}</p>
+                </div>
+                <div>
+                  <p className="text-[12px]" style={{ color: "#7a95ae" }}>Flagged</p>
+                  <p className="text-[20px] font-semibold" style={{ color: progress.flagged_items > 0 ? "#f87171" : "#dfe7ef" }}>
+                    {progress.flagged_items || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3">
+      {/* Actions */}
+      <div className="flex gap-2">
         {project.status === "draft" && (
-          <button onClick={() => handleStatus("active")} className="ax-btn ax-btn-primary">Activate Project</button>
+          <button onClick={() => changeStatus("active")} className="ax-btn ax-btn-primary"><Play size={13} /> Activate</button>
         )}
         {project.status === "active" && (
-          <button onClick={() => handleStatus("paused")} className="ax-btn ax-btn-ghost" style={{ borderColor: 'var(--ax-warn)', color: 'var(--ax-warn)' }}>Pause</button>
+          <button onClick={() => changeStatus("paused")} className="ax-btn ax-btn-secondary"><Pause size={13} /> Pause</button>
         )}
         {project.status === "paused" && (
-          <button onClick={() => handleStatus("active")} className="ax-btn ax-btn-primary">Resume</button>
+          <button onClick={() => changeStatus("active")} className="ax-btn ax-btn-primary"><Play size={13} /> Resume</button>
         )}
         {(project.status === "active" || project.status === "paused") && (
-          <button onClick={() => handleStatus("completed")} className="ax-btn ax-btn-ghost" style={{ borderColor: 'var(--ax-success)', color: 'var(--ax-success)' }}>Mark Completed</button>
+          <button onClick={() => changeStatus("completed")} className="ax-btn ax-btn-secondary"><CheckCircle2 size={13} /> Complete</button>
         )}
       </div>
     </div>
   );
 }
 
-/* ───────── Schema ───────── */
+/* ───── Schema ───── */
 function SchemaTab({ projectId, fields, onUpdate, isDraft }: { projectId: string; fields: any[]; onUpdate: () => void; isDraft: boolean }) {
   const [showAdd, setShowAdd] = useState(false);
   const [fieldKey, setFieldKey] = useState("");
@@ -180,115 +227,95 @@ function SchemaTab({ projectId, fields, onUpdate, isDraft }: { projectId: string
   const [config, setConfig] = useState('{"min":1,"max":5,"labels":["Strongly Disagree","Disagree","Neutral","Agree","Strongly Agree"]}');
   const [error, setError] = useState("");
 
-  const typeConfigs: Record<string, string> = {
-    likert: '{"min":1,"max":5,"labels":["Strongly Disagree","Disagree","Neutral","Agree","Strongly Agree"]}',
-    boolean: "{}",
-    free_text: "{}",
-    multi_select: '{"options":["Option A","Option B","Option C"]}',
+  const TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
+    likert:       { label: "Likert",       color: "#00d4ff", bg: "rgba(0,212,255,0.1)" },
+    boolean:      { label: "Boolean",      color: "#34d399", bg: "rgba(52,211,153,0.1)" },
+    free_text:    { label: "Free text",    color: "#fbbf24", bg: "rgba(251,191,36,0.1)" },
+    multi_select: { label: "Multi select", color: "#a78bfa", bg: "rgba(167,139,250,0.1)" },
   };
 
-  const fieldTypeLabels: Record<string, { icon: string; color: string }> = {
-    likert: { icon: "1-5", color: 'var(--ax-info)' },
-    boolean: { icon: "T/F", color: 'var(--ax-success)' },
-    free_text: { icon: "Aa", color: 'var(--ax-accent)' },
-    multi_select: { icon: "[ ]", color: 'var(--ax-warn)' },
+  const TYPE_CONFIGS: Record<string, string> = {
+    likert: '{"min":1,"max":5,"labels":["Strongly Disagree","Disagree","Neutral","Agree","Strongly Agree"]}',
+    boolean: "{}", free_text: "{}", multi_select: '{"options":["Option A","Option B","Option C"]}',
   };
 
   const addField = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); setError("");
     try {
       await apiFetch(`/api/projects/${projectId}/schema`, {
         method: "POST",
         body: JSON.stringify({ field_key: fieldKey, label, description: desc || null, field_type: fieldType, is_required: true, position: fields.length, config: JSON.parse(config) }),
       });
-      setFieldKey(""); setLabel(""); setDesc(""); setShowAdd(false);
-      onUpdate();
+      setFieldKey(""); setLabel(""); setDesc(""); setShowAdd(false); onUpdate();
     } catch (err: any) { setError(err.message); }
   };
 
-  const deleteField = async (fieldId: string) => {
-    await apiFetch(`/api/projects/${projectId}/schema/${fieldId}`, { method: "DELETE" });
-    onUpdate();
+  const deleteField = async (fid: string) => {
+    await apiFetch(`/api/projects/${projectId}/schema/${fid}`, { method: "DELETE" }); onUpdate();
   };
 
   return (
-    <div className="space-y-4 ax-animate">
-      {fields.length === 0 ? (
+    <div className="space-y-3 ax-enter">
+      {fields.length === 0 && !showAdd && (
         <div className="ax-card p-12 text-center">
-          <p style={{ color: 'var(--ax-text-muted)' }}>No schema fields defined yet.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {fields.map((f: any, i: number) => {
-            const ft = fieldTypeLabels[f.field_type] || fieldTypeLabels.free_text;
-            return (
-              <div key={f.id} className={`ax-card p-4 flex items-center justify-between ax-animate ax-stagger-${Math.min(i + 1, 5)}`}>
-                <div className="flex items-center gap-4">
-                  <span className="font-mono text-xs font-bold w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--ax-surface-raised)', color: ft.color }}>
-                    {ft.icon}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">{f.label}
-                      <span className="font-mono text-xs ml-2" style={{ color: 'var(--ax-text-muted)' }}>{f.field_key}</span>
-                    </p>
-                    {f.description && <p className="text-xs mt-0.5" style={{ color: 'var(--ax-text-muted)' }}>{f.description}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="ax-badge" style={{ background: f.is_required ? 'var(--ax-accent-glow)' : 'var(--ax-surface)', color: f.is_required ? 'var(--ax-accent)' : 'var(--ax-text-muted)' }}>
-                    {f.is_required ? "required" : "optional"}
-                  </span>
-                  {isDraft && (
-                    <button onClick={() => deleteField(f.id)} className="text-xs hover:underline" style={{ color: 'var(--ax-danger)' }}>Remove</button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          <FileText size={32} style={{ color: "#4a6480" }} className="mx-auto mb-3" />
+          <p className="text-[14px] font-medium mb-1" style={{ color: "#a3b8cc" }}>No schema fields yet</p>
+          <p className="text-[13px]" style={{ color: "#7a95ae" }}>Define the fields annotators will fill out.</p>
         </div>
       )}
 
+      {fields.map((f: any, i) => {
+        const tm = TYPE_META[f.field_type] || TYPE_META.free_text;
+        return (
+          <div key={f.id} className={`ax-card p-4 flex items-center gap-4 ax-enter ax-d${Math.min(i + 1, 5)}`}>
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg shrink-0"
+              style={{ color: tm.color, background: tm.bg }}>
+              {tm.label}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold truncate" style={{ color: "#dfe7ef" }}>
+                {f.label}
+                <span className="font-normal text-[12px] ml-2" style={{ color: "#7a95ae" }}>{f.field_key}</span>
+              </p>
+              {f.description && <p className="text-[12px] truncate mt-0.5" style={{ color: "#7a95ae" }}>{f.description}</p>}
+            </div>
+            {f.is_required && (
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md" style={{ color: "#fbbf24", background: "rgba(251,191,36,0.08)" }}>Required</span>
+            )}
+            {isDraft && (
+              <button onClick={() => deleteField(f.id)} className="ax-btn ax-btn-danger-ghost ax-btn-sm"><Trash2 size={13} /></button>
+            )}
+          </div>
+        );
+      })}
+
       {isDraft && !showAdd && (
         <button onClick={() => setShowAdd(true)} className="ax-btn ax-btn-primary">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-          Add Field
+          <Plus size={13} /> Add field
         </button>
       )}
 
       {showAdd && (
-        <form onSubmit={addField} className="ax-card p-6 space-y-4 relative ax-corner-accent ax-animate-scale">
-          {error && <div className="rounded-lg px-4 py-3 text-sm" style={{ background: 'var(--ax-danger-dim)', color: 'var(--ax-danger)' }}>{error}</div>}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Field Key</label>
-              <input value={fieldKey} onChange={(e) => setFieldKey(e.target.value)} className="ax-input" placeholder="persona_score" required />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Label</label>
-              <input value={label} onChange={(e) => setLabel(e.target.value)} className="ax-input" placeholder="Persona Consistency" required />
-            </div>
+        <form onSubmit={addField} className="ax-card p-6 space-y-4 ax-scale-in">
+          <h3 className="text-[15px] font-semibold" style={{ color: "#dfe7ef" }}>New field</h3>
+          {error && <div className="rounded-lg p-3 text-[13px]" style={{ background: "rgba(248,113,113,0.08)", color: "#f87171" }}>{error}</div>}
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="ax-label">Field key</label><input value={fieldKey} onChange={e => setFieldKey(e.target.value)} className="ax-input" placeholder="persona_score" required /></div>
+            <div><label className="ax-label">Label</label><input value={label} onChange={e => setLabel(e.target.value)} className="ax-input" placeholder="Persona Consistency" required /></div>
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Description</label>
-            <input value={desc} onChange={(e) => setDesc(e.target.value)} className="ax-input" placeholder="Optional description..." />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Field Type</label>
-            <select value={fieldType} onChange={(e) => { setFieldType(e.target.value); setConfig(typeConfigs[e.target.value] || "{}"); }} className="ax-input">
+          <div><label className="ax-label">Description</label><input value={desc} onChange={e => setDesc(e.target.value)} className="ax-input" placeholder="Optional description" /></div>
+          <div><label className="ax-label">Type</label>
+            <select value={fieldType} onChange={e => { setFieldType(e.target.value); setConfig(TYPE_CONFIGS[e.target.value] || "{}"); }} className="ax-input">
               <option value="likert">Likert Scale</option>
-              <option value="boolean">Boolean (Yes/No)</option>
+              <option value="boolean">Boolean</option>
               <option value="free_text">Free Text</option>
               <option value="multi_select">Multi Select</option>
             </select>
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Config JSON</label>
-            <textarea value={config} onChange={(e) => setConfig(e.target.value)} className="ax-input font-mono text-xs" style={{ minHeight: 64 }} />
-          </div>
+          <div><label className="ax-label">Config (JSON)</label><textarea value={config} onChange={e => setConfig(e.target.value)} className="ax-input text-[12px] font-mono" /></div>
           <div className="flex gap-2">
-            <button type="submit" className="ax-btn ax-btn-primary">Save Field</button>
-            <button type="button" onClick={() => setShowAdd(false)} className="ax-btn ax-btn-ghost">Cancel</button>
+            <button type="submit" className="ax-btn ax-btn-primary">Save field</button>
+            <button type="button" onClick={() => setShowAdd(false)} className="ax-btn ax-btn-secondary">Cancel</button>
           </div>
         </form>
       )}
@@ -296,85 +323,91 @@ function SchemaTab({ projectId, fields, onUpdate, isDraft }: { projectId: string
   );
 }
 
-/* ───────── Data ───────── */
+/* ───── Data ───── */
 function DataTab({ projectId }: { projectId: string }) {
   const [datasets, setDatasets] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
   const [selectedDs, setSelectedDs] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState("");
+  const [msg, setMsg] = useState("");
 
-  const loadDatasets = () => apiFetch(`/api/projects/${projectId}/datasets`).then(setDatasets).catch(() => {});
-  useEffect(() => { loadDatasets(); }, [projectId]);
+  const load = () => apiFetch(`/api/projects/${projectId}/datasets`).then(setDatasets).catch(() => {});
+  useEffect(() => { load(); }, [projectId]);
 
-  const createDataset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName) return;
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!newName) return;
     await apiFetch(`/api/projects/${projectId}/datasets`, { method: "POST", body: JSON.stringify({ name: newName }) });
-    setNewName("");
-    loadDatasets();
+    setNewName(""); load();
   };
 
-  const handleUpload = async (datasetId: string, file: File) => {
-    setUploading(true); setUploadResult("");
+  const upload = async (did: string, file: File) => {
+    setUploading(true); setMsg("");
     try {
-      const res = await apiUpload(`/api/projects/${projectId}/datasets/${datasetId}/upload`, file);
-      setUploadResult(`Uploaded ${res.uploaded} items`);
-      loadItems(datasetId);
-    } catch (err: any) { setUploadResult(err.message); }
+      const r = await apiUpload(`/api/projects/${projectId}/datasets/${did}/upload`, file);
+      setMsg(`${r.uploaded} items uploaded`);
+      loadItems(did);
+    } catch (e: any) { setMsg(e.message); }
     setUploading(false);
   };
 
-  const loadItems = (datasetId: string) => {
-    setSelectedDs(datasetId);
-    apiFetch(`/api/projects/${projectId}/datasets/${datasetId}/items`).then((r) => setItems(r.items)).catch(() => {});
+  const loadItems = (did: string) => {
+    setSelectedDs(did);
+    apiFetch(`/api/projects/${projectId}/datasets/${did}/items`).then(r => setItems(r.items)).catch(() => {});
   };
 
   return (
-    <div className="space-y-4 ax-animate">
-      <form onSubmit={createDataset} className="flex gap-2">
-        <input placeholder="Dataset name..." value={newName} onChange={(e) => setNewName(e.target.value)} className="ax-input" style={{ maxWidth: 300 }} />
-        <button type="submit" className="ax-btn ax-btn-primary">Create</button>
+    <div className="space-y-4 ax-enter">
+      <form onSubmit={create} className="flex gap-2">
+        <input placeholder="Dataset name..." value={newName} onChange={e => setNewName(e.target.value)} className="ax-input" style={{ maxWidth: 280 }} />
+        <button type="submit" className="ax-btn ax-btn-primary"><Plus size={13} /> Create</button>
       </form>
 
-      {datasets.map((ds) => (
-        <div key={ds.id} className="ax-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ax-accent)" strokeWidth="1.5"><path d="M4 7V17C4 18.1 4.9 19 6 19H18C19.1 19 20 18.1 20 17V7M4 7L8 3H16L20 7M4 7H20" /></svg>
-              {ds.name}
-            </h3>
-            <div className="flex gap-2 items-center">
-              <label className="ax-btn ax-btn-ghost text-xs cursor-pointer" style={{ padding: '6px 12px' }}>
-                {uploading ? "Uploading..." : "Upload JSON"}
-                <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && handleUpload(ds.id, e.target.files[0])} />
+      {datasets.length === 0 && (
+        <div className="ax-card p-12 text-center">
+          <Database size={32} style={{ color: "#4a6480" }} className="mx-auto mb-3" />
+          <p className="text-[14px] font-medium mb-1" style={{ color: "#a3b8cc" }}>No datasets yet</p>
+          <p className="text-[13px]" style={{ color: "#7a95ae" }}>Create a dataset and upload items as JSON.</p>
+        </div>
+      )}
+
+      {datasets.map(ds => (
+        <div key={ds.id} className="ax-card overflow-hidden">
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(100,140,190,0.08)" }}>
+            <div className="flex items-center gap-3">
+              <Database size={16} style={{ color: "#00d4ff" }} />
+              <span className="text-[14px] font-semibold" style={{ color: "#dfe7ef" }}>{ds.name}</span>
+            </div>
+            <div className="flex gap-2">
+              <label className="ax-btn ax-btn-secondary ax-btn-sm cursor-pointer">
+                <Upload size={12} /> {uploading ? "Uploading..." : "Upload JSON"}
+                <input type="file" accept=".json" className="hidden" onChange={e => e.target.files?.[0] && upload(ds.id, e.target.files[0])} />
               </label>
-              <button onClick={() => loadItems(ds.id)} className="text-xs font-medium hover:underline" style={{ color: 'var(--ax-info)' }}>View Items</button>
+              <button onClick={() => loadItems(ds.id)} className="ax-btn ax-btn-ghost ax-btn-sm"><Eye size={12} /> View</button>
             </div>
           </div>
 
-          {uploadResult && selectedDs === ds.id && (
-            <p className="text-xs mb-3" style={{ color: 'var(--ax-success)' }}>{uploadResult}</p>
+          {msg && selectedDs === ds.id && (
+            <div className="px-5 py-3 text-[13px] font-medium" style={{ color: "#34d399" }}>{msg}</div>
           )}
 
           {selectedDs === ds.id && items.length > 0 && (
-            <div className="max-h-64 overflow-auto rounded-lg" style={{ background: 'var(--ax-bg)' }}>
-              <table className="w-full text-xs">
+            <div className="max-h-64 overflow-auto">
+              <table className="w-full text-[13px]">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--ax-border)' }}>
-                    <th className="py-2 px-3 text-left font-mono uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>#</th>
-                    <th className="py-2 px-3 text-left font-mono uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>ID</th>
-                    <th className="py-2 px-3 text-left font-mono uppercase tracking-wide" style={{ color: 'var(--ax-text-muted)' }}>Data</th>
+                  <tr style={{ borderBottom: "1px solid rgba(100,140,190,0.08)" }}>
+                    <th className="py-3 px-5 text-left text-[12px] font-medium" style={{ color: "#7a95ae" }}>#</th>
+                    <th className="py-3 px-5 text-left text-[12px] font-medium" style={{ color: "#7a95ae" }}>ID</th>
+                    <th className="py-3 px-5 text-left text-[12px] font-medium" style={{ color: "#7a95ae" }}>Data</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, i) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid var(--ax-border-subtle)' }}>
-                      <td className="py-2 px-3" style={{ color: 'var(--ax-text-muted)' }}>{i + 1}</td>
-                      <td className="py-2 px-3 font-mono">{item.external_id || "—"}</td>
-                      <td className="py-2 px-3 font-mono truncate" style={{ maxWidth: 400, color: 'var(--ax-text-secondary)' }}>
-                        {typeof item.item_data === "string" ? item.item_data.slice(0, 80) : JSON.stringify(item.item_data).slice(0, 80)}
+                    <tr key={item.id} style={{ borderBottom: "1px solid rgba(100,140,190,0.04)" }}>
+                      <td className="py-2.5 px-5" style={{ color: "#7a95ae" }}>{i + 1}</td>
+                      <td className="py-2.5 px-5" style={{ color: "#a3b8cc" }}>{item.external_id || "—"}</td>
+                      <td className="py-2.5 px-5 truncate" style={{ maxWidth: 400, color: "#7a95ae" }}>
+                        {typeof item.item_data === "string" ? item.item_data.slice(0, 100) : JSON.stringify(item.item_data).slice(0, 100)}
                       </td>
                     </tr>
                   ))}
@@ -388,14 +421,14 @@ function DataTab({ projectId }: { projectId: string }) {
   );
 }
 
-/* ───────── Annotators ───────── */
+/* ───── Annotators ───── */
 function AnnotatorsTab({ projectId }: { projectId: string }) {
-  const [annotators, setAnnotators] = useState<any[]>([]);
+  const [list, setList] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [assignResult, setAssignResult] = useState("");
+  const [assignMsg, setAssignMsg] = useState("");
 
-  const load = () => apiFetch(`/api/projects/${projectId}/annotators`).then(setAnnotators).catch(() => {});
+  const load = () => apiFetch(`/api/projects/${projectId}/annotators`).then(setList).catch(() => {});
   useEffect(() => { load(); }, [projectId]);
 
   const enroll = async (e: React.FormEvent) => {
@@ -403,65 +436,75 @@ function AnnotatorsTab({ projectId }: { projectId: string }) {
     try {
       await apiFetch(`/api/projects/${projectId}/annotators`, { method: "POST", body: JSON.stringify({ annotator_email: email }) });
       setEmail(""); load();
-    } catch (err: any) { setError(err.message); }
+    } catch (e: any) { setError(e.message); }
   };
 
-  const remove = async (annotatorId: string) => {
-    await apiFetch(`/api/projects/${projectId}/annotators/${annotatorId}`, { method: "DELETE" });
-    load();
+  const remove = async (aid: string) => {
+    await apiFetch(`/api/projects/${projectId}/annotators/${aid}`, { method: "DELETE" }); load();
   };
 
   const assign = async () => {
-    setAssignResult("");
+    setAssignMsg("");
     try {
-      const res = await apiFetch(`/api/projects/${projectId}/annotators/assign`, { method: "POST" });
-      setAssignResult(`${res.tasks_created} tasks created`);
-    } catch (err: any) { setAssignResult(err.message); }
+      const r = await apiFetch(`/api/projects/${projectId}/annotators/assign`, { method: "POST" });
+      setAssignMsg(`${r.tasks_created} tasks assigned`);
+    } catch (e: any) { setAssignMsg(e.message); }
   };
 
   return (
-    <div className="space-y-4 ax-animate">
+    <div className="space-y-4 ax-enter">
       <form onSubmit={enroll} className="flex gap-2">
-        <input type="email" placeholder="annotator@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="ax-input" style={{ maxWidth: 300 }} required />
-        <button type="submit" className="ax-btn ax-btn-primary">Enroll</button>
+        <input type="email" placeholder="annotator@email.com" value={email} onChange={e => setEmail(e.target.value)} className="ax-input" style={{ maxWidth: 280 }} required />
+        <button type="submit" className="ax-btn ax-btn-primary"><Plus size={13} /> Enroll</button>
       </form>
-      {error && <p className="text-sm" style={{ color: 'var(--ax-danger)' }}>{error}</p>}
+      {error && <p className="text-[13px] font-medium" style={{ color: "#f87171" }}>{error}</p>}
 
-      {annotators.length > 0 ? (
-        <div className="ax-card divide-y" style={{ borderColor: 'var(--ax-border)' }}>
-          {annotators.map((a) => (
-            <div key={a.id} className="p-4 flex items-center justify-between" style={{ borderColor: 'var(--ax-border-subtle)' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--ax-accent-glow)', color: 'var(--ax-accent)' }}>
+      {list.length > 0 ? (
+        <div className="ax-card overflow-hidden">
+          <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(100,140,190,0.08)" }}>
+            <span className="text-[14px] font-semibold" style={{ color: "#dfe7ef" }}>
+              Enrolled annotators
+            </span>
+            <span className="text-[12px] font-medium px-2.5 py-1 rounded-lg" style={{ color: "#00d4ff", background: "rgba(0,212,255,0.08)" }}>
+              {list.length}
+            </span>
+          </div>
+          {list.map((a, i) => (
+            <div key={a.id} className={`flex items-center px-5 py-3.5 ax-enter ax-d${Math.min(i + 1, 5)}`}
+              style={{ borderBottom: i < list.length - 1 ? "1px solid rgba(100,140,190,0.06)" : "none" }}>
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold"
+                  style={{ color: "#00d4ff", background: "rgba(0,212,255,0.1)" }}>
                   {a.display_name?.[0]?.toUpperCase() || "?"}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{a.display_name}</p>
-                  <p className="text-xs font-mono" style={{ color: 'var(--ax-text-muted)' }}>{a.email}</p>
+                  <p className="text-[13px] font-medium" style={{ color: "#dfe7ef" }}>{a.display_name}</p>
+                  <p className="text-[12px]" style={{ color: "#7a95ae" }}>{a.email}</p>
                 </div>
               </div>
-              <button onClick={() => remove(a.id)} className="text-xs hover:underline" style={{ color: 'var(--ax-danger)' }}>Remove</button>
+              <button onClick={() => remove(a.id)} className="ax-btn ax-btn-danger-ghost ax-btn-sm"><Trash2 size={13} /></button>
             </div>
           ))}
         </div>
       ) : (
         <div className="ax-card p-12 text-center">
-          <p style={{ color: 'var(--ax-text-muted)' }}>No annotators enrolled yet.</p>
+          <Users size={32} style={{ color: "#4a6480" }} className="mx-auto mb-3" />
+          <p className="text-[14px] font-medium mb-1" style={{ color: "#a3b8cc" }}>No annotators enrolled</p>
+          <p className="text-[13px]" style={{ color: "#7a95ae" }}>Invite annotators by email to start.</p>
         </div>
       )}
 
-      <div className="flex items-center gap-4 pt-2">
-        <button onClick={assign} className="ax-btn ax-btn-ghost" style={{ borderColor: 'var(--ax-success)', color: 'var(--ax-success)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" /></svg>
-          Assign Tasks
+      <div className="flex items-center gap-3">
+        <button onClick={assign} className="ax-btn ax-btn-secondary">
+          <CheckCircle2 size={13} style={{ color: "#34d399" }} /> Assign tasks
         </button>
-        {assignResult && <span className="text-sm font-mono" style={{ color: 'var(--ax-success)' }}>{assignResult}</span>}
+        {assignMsg && <span className="text-[13px] font-semibold" style={{ color: "#34d399" }}>{assignMsg}</span>}
       </div>
     </div>
   );
 }
 
-/* ───────── Results ───────── */
+/* ───── Results ───── */
 function ResultsTab({ projectId }: { projectId: string }) {
   const [agreement, setAgreement] = useState<any[]>([]);
   const [flags, setFlags] = useState<any[]>([]);
@@ -473,107 +516,108 @@ function ResultsTab({ projectId }: { projectId: string }) {
     apiFetch(`/api/projects/${projectId}/flags`).then(setFlags).catch(() => {});
   }, [projectId]);
 
-  const computeAgreement = async () => {
+  const compute = async () => {
     setComputing(true);
-    try { const res = await apiFetch(`/api/projects/${projectId}/agreement/compute`, { method: "POST" }); setAgreement(res); } catch {}
+    try { const r = await apiFetch(`/api/projects/${projectId}/agreement/compute`, { method: "POST" }); setAgreement(r); } catch {}
     setComputing(false);
   };
 
-  const analyzeFlags = async () => {
+  const analyze = async () => {
     setAnalyzing(true);
     try {
       await apiFetch(`/api/projects/${projectId}/flags/analyze`, { method: "POST" });
-      const res = await apiFetch(`/api/projects/${projectId}/flags`); setFlags(res);
+      const r = await apiFetch(`/api/projects/${projectId}/flags`);
+      setFlags(r);
     } catch {}
     setAnalyzing(false);
   };
 
-  const exportData = (format: string) => {
-    const token = localStorage.getItem("token");
-    window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/projects/${projectId}/export?format=${format}${token ? `&token=${token}` : ""}`, "_blank");
+  const exportData = (fmt: string) => {
+    const t = localStorage.getItem("token");
+    window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/projects/${projectId}/export?format=${fmt}${t ? `&token=${t}` : ""}`, "_blank");
   };
 
   return (
-    <div className="space-y-6 ax-animate">
+    <div className="space-y-5 ax-enter">
       {/* Agreement */}
-      <div className="ax-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Inter-Annotator Agreement</h3>
-          <button onClick={computeAgreement} disabled={computing} className="ax-btn ax-btn-primary" style={{ padding: '6px 14px', fontSize: 12 }}>
+      <div className="ax-card overflow-hidden">
+        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(100,140,190,0.08)" }}>
+          <span className="text-[14px] font-semibold" style={{ color: "#dfe7ef" }}>Agreement scores</span>
+          <button onClick={compute} disabled={computing} className="ax-btn ax-btn-primary ax-btn-sm">
             {computing ? "Computing..." : "Compute"}
           </button>
         </div>
         {agreement.length > 0 ? (
-          <div className="overflow-auto rounded-lg" style={{ background: 'var(--ax-bg)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--ax-border)' }}>
-                  <th className="py-2.5 px-4 text-left text-[10px] font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Field</th>
-                  <th className="py-2.5 px-4 text-left text-[10px] font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Agreement</th>
-                  <th className="py-2.5 px-4 text-left text-[10px] font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Items</th>
-                  <th className="py-2.5 px-4 text-left text-[10px] font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>Annotators</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agreement.map((a) => {
-                  const pct = a.pct_agreement != null ? a.pct_agreement * 100 : null;
-                  const color = pct === null ? 'var(--ax-text-muted)' : pct >= 80 ? 'var(--ax-success)' : pct >= 50 ? 'var(--ax-warn)' : 'var(--ax-danger)';
-                  return (
-                    <tr key={a.id} style={{ borderBottom: '1px solid var(--ax-border-subtle)' }}>
-                      <td className="py-2.5 px-4 font-medium">{a.field_key}</td>
-                      <td className="py-2.5 px-4 font-mono font-bold" style={{ color }}>{pct !== null ? `${pct.toFixed(0)}%` : "—"}</td>
-                      <td className="py-2.5 px-4 font-mono" style={{ color: 'var(--ax-text-secondary)' }}>{a.n_items}</td>
-                      <td className="py-2.5 px-4 font-mono" style={{ color: 'var(--ax-text-secondary)' }}>{a.n_annotators}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="flex items-center px-5 py-3 text-[12px] font-medium"
+              style={{ color: "#7a95ae", borderBottom: "1px solid rgba(100,140,190,0.06)" }}>
+              <span className="flex-1">Field</span>
+              <span className="w-20 text-right">Agreement</span>
+              <span className="w-16 text-right">Items</span>
+              <span className="w-16 text-right">Annotators</span>
+            </div>
+            {agreement.map((a) => {
+              const pct = a.pct_agreement != null ? a.pct_agreement * 100 : null;
+              const c = pct === null ? "#7a95ae" : pct >= 80 ? "#34d399" : pct >= 50 ? "#fbbf24" : "#f87171";
+              return (
+                <div key={a.id} className="flex items-center px-5 py-3.5 text-[13px]"
+                  style={{ borderBottom: "1px solid rgba(100,140,190,0.04)" }}>
+                  <span className="flex-1 font-medium" style={{ color: "#dfe7ef" }}>{a.field_key}</span>
+                  <span className="w-20 text-right font-bold" style={{ color: c }}>
+                    {pct !== null ? `${pct.toFixed(0)}%` : "—"}
+                  </span>
+                  <span className="w-16 text-right" style={{ color: "#7a95ae" }}>{a.n_items}</span>
+                  <span className="w-16 text-right" style={{ color: "#7a95ae" }}>{a.n_annotators}</span>
+                </div>
+              );
+            })}
+          </>
         ) : (
-          <p className="text-sm" style={{ color: 'var(--ax-text-muted)' }}>No agreement scores computed yet.</p>
+          <div className="p-8 text-center">
+            <p className="text-[13px]" style={{ color: "#7a95ae" }}>No agreement data yet. Click Compute after annotations are submitted.</p>
+          </div>
         )}
       </div>
 
       {/* Flags */}
-      <div className="ax-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-xs font-mono uppercase tracking-widest" style={{ color: 'var(--ax-text-muted)' }}>AI Flagged Items</h3>
-          <button onClick={analyzeFlags} disabled={analyzing} className="ax-btn" style={{ padding: '6px 14px', fontSize: 12, background: 'rgba(190, 120, 240, 0.12)', color: '#be78f0', border: '1px solid rgba(190,120,240,0.25)' }}>
-            {analyzing ? "Analyzing..." : "Run AI Analysis"}
+      <div className="ax-card overflow-hidden">
+        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(100,140,190,0.08)" }}>
+          <span className="text-[14px] font-semibold" style={{ color: "#dfe7ef" }}>AI flags</span>
+          <button onClick={analyze} disabled={analyzing} className="ax-btn ax-btn-sm"
+            style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", borderColor: "rgba(167,139,250,0.25)" }}>
+            <Sparkles size={12} /> {analyzing ? "Analyzing..." : "Analyze"}
           </button>
         </div>
         {flags.length > 0 ? (
-          <div className="space-y-3">
-            {flags.map((f) => (
-              <div key={f.id} className="rounded-lg p-4" style={{ background: 'var(--ax-danger-dim)', border: '1px solid rgba(240,96,96,0.15)' }}>
+          <div className="p-5 space-y-3">
+            {flags.map(f => (
+              <div key={f.id} className="rounded-xl p-4" style={{ background: "rgba(248,113,113,0.04)", border: "1px solid rgba(248,113,113,0.1)" }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs" style={{ color: 'var(--ax-text-secondary)' }}>{f.external_id || f.dataset_item_id?.slice(0, 8)}</span>
-                  <span className="ax-badge" style={{ background: 'rgba(240,96,96,0.15)', color: 'var(--ax-danger)' }}>
-                    {f.confidence_score != null ? `${(f.confidence_score * 100).toFixed(0)}% confidence` : "flagged"}
+                  <span className="text-[13px] font-medium" style={{ color: "#a3b8cc" }}>
+                    {f.external_id || f.dataset_item_id?.slice(0, 8)}
+                  </span>
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+                    style={{ background: "rgba(248,113,113,0.08)", color: "#f87171" }}>
+                    {f.confidence_score != null ? `${(f.confidence_score * 100).toFixed(0)}% confidence` : "Flagged"}
                   </span>
                 </div>
-                <p className="text-sm" style={{ color: 'var(--ax-text-secondary)' }}>{f.rationale}</p>
+                <p className="text-[13px] leading-relaxed" style={{ color: "#7a95ae" }}>{f.rationale}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: 'var(--ax-text-muted)' }}>No flagged items.</p>
+          <div className="p-8 text-center">
+            <p className="text-[13px]" style={{ color: "#7a95ae" }}>No flagged items. Use AI analysis to detect divergent annotations.</p>
+          </div>
         )}
       </div>
 
       {/* Export */}
-      <div className="ax-card p-6">
-        <h3 className="text-xs font-mono uppercase tracking-widest mb-4" style={{ color: 'var(--ax-text-muted)' }}>Export Data</h3>
-        <div className="flex gap-3">
-          <button onClick={() => exportData("json")} className="ax-btn ax-btn-ghost">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15M7 10L12 15M12 15L17 10M12 15V3" /></svg>
-            JSON
-          </button>
-          <button onClick={() => exportData("csv")} className="ax-btn ax-btn-ghost">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15M7 10L12 15M12 15L17 10M12 15V3" /></svg>
-            CSV
-          </button>
+      <div className="ax-card p-5">
+        <h3 className="text-[14px] font-semibold mb-3" style={{ color: "#dfe7ef" }}>Export</h3>
+        <div className="flex gap-2">
+          <button onClick={() => exportData("json")} className="ax-btn ax-btn-secondary"><Download size={13} /> JSON</button>
+          <button onClick={() => exportData("csv")} className="ax-btn ax-btn-secondary"><Download size={13} /> CSV</button>
         </div>
       </div>
     </div>

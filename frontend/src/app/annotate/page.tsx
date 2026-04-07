@@ -3,71 +3,108 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { ChevronRight, History, LogOut, Activity } from "lucide-react";
+
+interface ProjectGroup {
+  project_id: string;
+  title: string;
+  description: string | null;
+  project_status: string;
+  total_tasks: number;
+  completed_tasks: number;
+  remaining_tasks: number;
+}
 
 export default function AnnotateQueue() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectGroup[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
-    if (user) apiFetch("/api/tasks").then(setTasks).catch(console.error);
+    if (user) apiFetch("/api/tasks/projects").then(setProjects).catch(console.error);
   }, [user, loading, router]);
 
   if (loading || !user) return null;
 
+  const totalRemaining = projects.reduce((s, p) => s + p.remaining_tasks, 0);
+
   return (
-    <div className="ax-animate">
-      <div className="flex items-start justify-between mb-10">
+    <div className="ax-enter">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-7">
         <div>
-          <p className="text-xs font-mono uppercase tracking-widest mb-2" style={{ color: 'var(--ax-text-muted)' }}>Task Queue</p>
-          <h1 className="font-display text-3xl">
-            <span style={{ color: 'var(--ax-accent)' }}>{tasks.length}</span>{" "}
-            pending task{tasks.length !== 1 ? "s" : ""}
+          <h1 className="text-[26px] font-bold tracking-tight" style={{ color: '#edf2f7' }}>
+            My Assignments
           </h1>
+          <p className="text-[13px] mt-1.5" style={{ color: '#7a95ae' }}>
+            {projects.length} project{projects.length !== 1 ? "s" : ""} · <span style={{ color: '#00d4ff' }}>{totalRemaining}</span> tasks remaining
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <a href="/annotate/history" className="ax-btn ax-btn-ghost text-xs">History</a>
-          <button onClick={logout} className="ax-btn ax-btn-ghost text-xs">Logout</button>
+        <div className="flex items-center gap-2">
+          <a href="/annotate/history" className="ax-btn ax-btn-secondary"><History size={13} /> History</a>
+          <button onClick={logout} className="ax-btn ax-btn-ghost"><LogOut size={13} /> Sign out</button>
         </div>
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="ax-card p-16 text-center relative overflow-hidden">
-          <div className="ax-dotgrid absolute inset-0 rounded-xl opacity-20" />
-          <div className="relative">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="mx-auto mb-4">
-              <circle cx="24" cy="24" r="18" stroke="var(--ax-text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
-              <path d="M24 18V30M18 24H30" stroke="var(--ax-text-muted)" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            <p className="mb-1" style={{ color: 'var(--ax-text-secondary)' }}>No tasks in your queue.</p>
-            <p className="text-sm" style={{ color: 'var(--ax-text-muted)' }}>Ask a requester to assign you to a project.</p>
+      {projects.length === 0 ? (
+        <div className="ax-card p-14 text-center ax-enter ax-d1">
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+            style={{ background: '#253350' }}>
+            <Activity className="w-7 h-7" style={{ color: '#00d4ff' }} />
           </div>
+          <p className="text-[16px] font-semibold mb-2" style={{ color: '#dfe7ef' }}>
+            No assignments yet
+          </p>
+          <p className="text-[14px]" style={{ color: '#7a95ae' }}>
+            Ask a requester to enroll you in a project.
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {tasks.map((t, i) => {
-            const itemPreview = typeof t.item_data === "string" ? t.item_data : JSON.stringify(t.item_data || {});
+        <div className="space-y-3">
+          {projects.map((p, i) => {
+            const pct = p.total_tasks > 0 ? Math.round((p.completed_tasks / p.total_tasks) * 100) : 0;
+            const isPaused = p.project_status === "paused";
+
             return (
-              <a
-                key={t.id}
-                href={`/annotate/${t.id}`}
-                className={`ax-card ax-card-interactive p-5 block group ax-animate ax-stagger-${Math.min(i + 1, 5)}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-semibold group-hover:translate-x-0.5 transition-transform">
-                    {t.project_title}
-                  </h2>
-                  <span className="ax-badge" style={{
-                    background: t.status === "in_progress" ? 'var(--ax-info-dim)' : 'var(--ax-surface-raised)',
-                    color: t.status === "in_progress" ? 'var(--ax-info)' : 'var(--ax-text-muted)',
-                  }}>
-                    {t.status === "in_progress" ? "In Progress" : "Pending"}
-                  </span>
+              <a key={p.project_id} href={`/annotate/project/${p.project_id}`}
+                className={`block group ax-card transition-all ax-enter ax-d${Math.min(i + 1, 5)}`}
+                style={{ opacity: isPaused ? 0.6 : 1, textDecoration: 'none' }}>
+                <div className="p-5">
+                  {/* Title row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Activity size={16} style={{ color: isPaused ? '#fbbf24' : '#00d4ff' }} />
+                      <h2 className="text-[14px] font-semibold truncate" style={{ color: '#dfe7ef' }}>
+                        {p.title}
+                      </h2>
+                      {isPaused && (
+                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+                          style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)' }}>
+                          Paused
+                        </span>
+                      )}
+                    </div>
+                    <ChevronRight size={16} className="shrink-0 opacity-0 group-hover:opacity-70 transition-all"
+                      style={{ color: '#00d4ff' }} />
+                  </div>
+
+                  {/* Progress row */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(100,140,190,0.1)' }}>
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: '#00d4ff' }} />
+                    </div>
+                    <span className="text-[13px] font-medium shrink-0" style={{ color: '#a3b8cc' }}>
+                      {p.completed_tasks}<span style={{ color: '#4a6480' }}>/</span>{p.total_tasks}
+                    </span>
+                    {!isPaused && p.remaining_tasks > 0 && (
+                      <span className="text-[12px] shrink-0" style={{ color: '#7a95ae' }}>
+                        {p.remaining_tasks} left
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="font-mono text-xs truncate" style={{ color: 'var(--ax-text-muted)', maxWidth: '80%' }}>
-                  {itemPreview.slice(0, 120)}
-                </p>
               </a>
             );
           })}

@@ -5,3 +5,4 @@ __pycache__/
 .env
 mysql_data/
 .DS_Store
+.claude
