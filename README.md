@@ -2,7 +2,6 @@
 
 A general-purpose human annotation platform built for collaborative data labeling. Requesters create projects with fully custom schemas, upload datasets, and enroll annotators. Annotators work through items sequentially within each project, submitting structured labels through a dynamic form renderer. An AI flagging system (Claude API) identifies items where annotators diverge.
 
-Built as a thesis project and DBS (Database Systems) course deliverable — the MySQL database with stored procedures, triggers, and views is a core component.
 
 ## Architecture
 
