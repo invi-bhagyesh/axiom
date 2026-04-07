@@ -5,22 +5,11 @@ A general-purpose human annotation platform built for collaborative data labelin
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────┐
-│                 Docker Compose                   │
-│                                                  │
-│  ┌────────────┐  ┌────────────┐  ┌─────────────┐ │
-│  │  Next.js   │  │  FastAPI   │  │  MySQL 8.0  │ │
-│  │  :3000     │──│  :8000     │──│  :3306      │ │
-│  └────────────┘  └─────┬──────┘  └─────────────┘ │
-│                        │                         │
-│                        ▼                         │
-│                 ┌─────────────┐                  │
-│                 │ Claude API  │                  │
-│                 │ (external)  │                  │
-│                 └─────────────┘                  │
-└──────────────────────────────────────────────────┘
-```
+![System Architecture](docs/system.png)
+
+## Use Cases
+
+![Use Case Diagram](docs/use-case.png)
 
 ## Stack
 
